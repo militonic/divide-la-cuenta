@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <!-- Esta línea hace que la página se adapte al celular -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Divide la cuenta</title>
+  <style>
+    :root {
+      --fondo: #f4f1ea;
+      --tarjeta: #ffffff;
+      --texto: #1f2328;
+      --suave: #6b6f76;
+      --acento: #1a7f5a;
+      --acento-claro: #e3f3ec;
+      --borde: #e2ddd3;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --fondo: #15171a;
+        --tarjeta: #1f2226;
+        --texto: #eceef0;
+        --suave: #9aa0a6;
+        --acento: #4cc38a;
+        --acento-claro: #1b3328;
+        --borde: #2e3237;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px;
+      background: var(--fondo);
+      color: var(--texto);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    main {
+      width: 100%;
+      max-width: 420px;
+      background: var(--tarjeta);
+      border: 1px solid var(--borde);
+      border-radius: 20px;
+      padding: 28px 24px;
+    }
+    h1 { margin: 0 0 4px; font-size: 1.6rem; }
+    .sub { margin: 0 0 24px; color: var(--suave); }
+    label { display: block; font-weight: 600; margin: 18px 0 8px; }
+    .campo {
+      display: flex; align-items: center;
+      border: 1px solid var(--borde); border-radius: 12px;
+      padding: 0 12px; background: var(--fondo);
+    }
+    .campo span { color: var(--suave); }
+    input, select {
+      width: 100%; border: 0; background: transparent; color: var(--texto);
+      font-size: 1.15rem; padding: 12px 8px; outline: none;
+    }
+    .campo:focus-within { border-color: var(--acento); }
+    .opciones { display: flex; gap: 8px; flex-wrap: wrap; }
+    .opciones button {
+      flex: 1; min-width: 60px; padding: 10px 0;
+      border: 1px solid var(--borde); border-radius: 10px;
+      background: var(--fondo); color: var(--texto);
+      font-size: 1rem; cursor: pointer;
+    }
+    .opciones button.activo {
+      background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 600;
+    }
+    .contador { display: flex; align-items: center; gap: 12px; }
+    .contador button {
+      width: 48px; height: 48px; border-radius: 12px;
+      border: 1px solid var(--borde); background: var(--fondo); color: var(--texto);
+      font-size: 1.4rem; cursor: pointer;
+    }
+    .contador output { font-size: 1.4rem; font-weight: 700; min-width: 40px; text-align: center; }
+    .resultado {
+      margin-top: 28px; padding: 20px; border-radius: 16px;
+      background: var(--acento-claro);
+    }
+    .resultado .grande { font-size: 2.4rem; font-weight: 800; color: var(--acento); margin: 4px 0 12px; }
+    .fila { display: flex; justify-content: space-between; color: var(--suave); margin-top: 6px; }
+    footer { margin-top: 20px; text-align: center; color: var(--suave); font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Divide la cuenta</h1>
+    <p class="sub">Calcula cuánto le toca a cada quien, propina incluida.</p>
+
+    <label for="moneda">Moneda</label>
+    <div class="campo">
+      <select id="moneda">
+        <option value="$">$ Dólar / Peso</option>
+        <option value="C$">C$ Córdoba</option>
+        <option value="Q">Q Quetzal</option>
+        <option value="L">L Lempira</option>
+        <option value="₡">₡ Colón</option>
+        <option value="€">€ Euro</option>
+      </select>
+    </div>
+
+    <label for="total">Total de la cuenta</label>
+    <div class="campo">
+      <span id="simbolo">$</span>
+      <input id="total" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+    </div>
+
+    <label>Propina</label>
+    <div class="opciones" id="propinas">
+      <button data-p="0">0%</button>
+      <button data-p="10" class="activo">10%</button>
+      <button data-p="15">15%</button>
+      <button data-p="20">20%</button>
+    </div>
+
+    <label>Personas</label>
+    <div class="contador">
+      <button id="menos" aria-label="Quitar persona">−</button>
+      <output id="personas">2</output>
+      <button id="mas" aria-label="Agregar persona">+</button>
+    </div>
+
+    <section class="resultado" aria-live="polite">
+      <div>Cada persona paga</div>
+      <div class="grande" id="porPersona">$0.00</div>
+      <div class="fila"><span>Propina</span><span id="propinaTotal">$0.00</span></div>
+      <div class="fila"><span>Total con propina</span><span id="granTotal">$0.00</span></div>
+    </section>
+
+    <footer>Proyecto 1 · Sitio estático en GitHub Pages</footer>
+  </main>
+
+  <script>
+    // Todo el cálculo pasa aquí, en el navegador. No hay servidor ni base de datos.
+    let propina = 10;
+    let personas = 2;
+
+    const $ = (id) => document.getElementById(id);
+
+    function formato(n) {
+      return $('moneda').value + n.toFixed(2);
+    }
+
+    function calcular() {
+      const total = parseFloat($('total').value) || 0;
+      const montoPropina = total * propina / 100;
+      const granTotal = total + montoPropina;
+      $('simbolo').textContent = $('moneda').value;
+      $('personas').textContent = personas;
+      $('porPersona').textContent = formato(granTotal / personas);
+      $('propinaTotal').textContent = formato(montoPropina);
+      $('granTotal').textContent = formato(granTotal);
+    }
+
+    $('total').addEventListener('input', calcular);
+    $('moneda').addEventListener('change', calcular);
+    $('menos').addEventListener('click', () => { if (personas > 1) personas--; calcular(); });
+    $('mas').addEventListener('click', () => { personas++; calcular(); });
+
+    document.querySelectorAll('#propinas button').forEach((boton) => {
+      boton.addEventListener('click', () => {
+        document.querySelectorAll('#propinas button').forEach((b) => b.classList.remove('activo'));
+        boton.classList.add('activo');
+        propina = Number(boton.dataset.p);
+        calcular();
+      });
+    });
+
+    calcular();
+  </script>
+</body>
+</html>
